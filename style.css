@@ -1,8 +1,9 @@
 body {
     margin: 0;
+    font-family: Arial, sans-serif;
 }
 
-/* Green bar */
+/* TOP BAR */
 .top-bar {
     width: 100%;
     height: 60px;
@@ -13,45 +14,116 @@ body {
     padding: 0 15px;
 }
 
-/* LEFT SIDE (logo + dropdown) */
+/* LEFT SIDE */
 .left {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 15px;
 }
 
-/* Logo */
+/* LOGO */
 .logo img {
     height: 45px;
 }
 
-/* Dropdown */
+/* DROPDOWN */
 .dropdown {
     padding: 5px 10px;
-    border-radius: 2px;
+    border-radius: 5px;
     border: none;
     height: 35px;
-    width: 120px;
-
     background-color: #DCCB5D;
     color: #1E1E1E;
 }
 
-/* RIGHT SIDE (profile) */
 .profile {
     margin-left: auto;
     display: flex;
     align-items: center;
     gap: 10px;
+    padding-right: 10px;
+
+    color: #1E1E1E;
+    font-weight: bold;
 }
 
 .profile img {
     height: 40px;
     width: 40px;
-    border-radius: 50%;
+    border-radius: 50%; /* makes it circular */
+}
+/* MAIN LAYOUT */
+.container {
+    display: flex;
 }
 
-.profile span {
-    color: #1E1E1E;
-    font-size: 18px;
+/* SIDEBAR */
+.sidebar {
+    width: 200px;
+    height: calc(100vh - 60px);
+    background-color: #111827;
+    padding: 15px;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: none;
+    color: white;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.sidebar button:hover {
+    background-color: #1F2937;
+}
+
+.sidebar .active {
+    background-color: #22C55E;
+    color: black;
+}
+
+/* CONTENT */
+.content {
+    flex: 1;
+    padding: 20px;
+}
+
+/* CARDS */
+.cards {
+    display: flex;
+    gap: 10px;
+}
+
+.card {
+    flex: 1;
+    background: #f3f4f6;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+/* LARGE CARD */
+.large-card {
+    margin-top: 20px;
+    height: 200px;
+    background: #e5e7eb;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+/* BOTTOM SECTION */
+.bottom-section {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.notes, .assignment {
+    flex: 1;
+    background: #f3f4f6;
+    padding: 20px;
+    border-radius: 10px;
 }
