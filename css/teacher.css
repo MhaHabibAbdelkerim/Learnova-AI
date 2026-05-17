@@ -313,6 +313,11 @@
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
+.teacher-resources-page .upload-zone.drag-over {
+  border-color: #facc15;
+  background: #fffbeb;
+}
+
 .teacher-resources-page .teacher-upload-zone:hover {
   border-color: #0f766e;
 }
@@ -476,6 +481,22 @@
 .teacher-resources-page .fc-meta {
   font-size: 11px;
   color: #64748b;
+}
+
+.teacher-resources-page .fc-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.teacher-resources-page .fc-del:hover {
+  color: #dc2626;
 }
 
 .teacher-resources-page .fc-tag {

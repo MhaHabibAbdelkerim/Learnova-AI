@@ -162,7 +162,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-let files = [];
+const storageKey = 'student-resource-uploads';
+let files = loadFiles();
 let currentFilter = 'all';
 let isGridView = true;
 
@@ -174,6 +175,26 @@ const fileGrid = document.getElementById('fileGrid');
 const fileListView = document.getElementById('fileListView');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
+
+function loadFiles(){
+  try {
+    const raw = localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFiles(){
+  localStorage.setItem(storageKey, JSON.stringify(files));
+}
+
+function formatBytes(bytes){
+  if(!bytes) return '0 KB';
+  if(bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  return kb < 1024 ? `${kb.toFixed(kb < 10 ? 1 : 0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
+}
 
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
@@ -214,14 +235,15 @@ function handleFiles(newFiles){
 
   newFiles.forEach(f=>{
     files.unshift({
-      id:Date.now()+Math.random(),
+      id:`${Date.now()}-${Math.random().toString(16).slice(2)}`,
       name:f.name,
       size:f.size,
       type:getType(f.name),
-      date:new Date()
+      date:new Date().toISOString()
     });
   });
 
+  saveFiles();
   update();
 }
 
@@ -251,6 +273,8 @@ function render(){
 function update(){
   document.getElementById('statTotal').textContent=files.length;
   document.getElementById('fileCountBadge').textContent=files.length;
+  document.getElementById('statSize').textContent=`${formatBytes(files.reduce((sum,file)=>sum+file.size,0))}`;
+  document.getElementById('statTypes').textContent=files.length ? `${new Set(files.map(file=>file.type)).size} type${new Set(files.map(file=>file.type)).size === 1 ? '' : 's'}` : '—';
   render();
 }
 

@@ -69,7 +69,7 @@
       </article>
 
       <div class="action-row">
-        <button class="action-card" type="button">Upload worksheet</button>
+        <label class="action-card" id="teacherUploadButton" for="teacherFileInput">Upload worksheet</label>
         <button class="action-card" type="button">Share video lesson</button>
         <button class="action-card" type="button">Post class announcement</button>
       </div>
@@ -81,18 +81,20 @@
       </div>
 
       <div class="panel active" id="panel-publish">
-        <div class="upload-zone teacher-upload-zone">
+        <div class="upload-zone teacher-upload-zone" id="teacherDropZone">
           <div class="upload-icon">☁️</div>
           <h2>Choose a file or drag and drop it here</h2>
           <p>PDF, DOCX, PNG, MP4 formats for class delivery and review</p>
 
-          <button class="browse-btn teacher-browse-btn" type="button">Browse Files</button>
+          <input type="file" id="teacherFileInput" hidden multiple accept=".jpeg,.jpg,.png,.pdf,.mp4,.doc,.docx,.txt">
+
+          <label class="browse-btn teacher-browse-btn" id="teacherBrowseBtn" for="teacherFileInput">Browse Files</label>
         </div>
 
         <div class="stats-row">
-          <div class="stat-card"><div class="stat-label">Published today</div><div class="stat-val">4</div></div>
-          <div class="stat-card"><div class="stat-label">Scheduled</div><div class="stat-val">2</div></div>
-          <div class="stat-card"><div class="stat-label">Drafts</div><div class="stat-val">6</div></div>
+          <div class="stat-card"><div class="stat-label">Uploaded files</div><div class="stat-val" id="teacherFileCount">0</div></div>
+          <div class="stat-card"><div class="stat-label">Total size</div><div class="stat-val" id="teacherTotalSize">0 KB</div></div>
+          <div class="stat-card"><div class="stat-label">File types</div><div class="stat-val" id="teacherFileTypes">—</div></div>
         </div>
       </div>
 
@@ -114,26 +116,8 @@
           <button class="filter-btn" type="button">Document</button>
         </div>
 
-        <div class="file-grid">
-          <div class="file-card">
-            <div class="fc-icon">📄</div>
-            <div class="fc-name">Algebra Practice Set A</div>
-            <div class="fc-meta">Uploaded 12 min ago</div>
-            <span class="fc-tag tag-doc">Document</span>
-          </div>
-          <div class="file-card">
-            <div class="fc-icon">🎬</div>
-            <div class="fc-name">Reading Comprehension Week 4</div>
-            <div class="fc-meta">Uploaded 1 hour ago</div>
-            <span class="fc-tag tag-vid">Video</span>
-          </div>
-          <div class="file-card">
-            <div class="fc-icon">🖼️</div>
-            <div class="fc-name">Science Lab Safety Slides</div>
-            <div class="fc-meta">Uploaded yesterday</div>
-            <span class="fc-tag tag-img">Image</span>
-          </div>
-        </div>
+        <div class="card-title">Uploaded resources</div>
+        <div class="file-grid" id="teacherUploadsGrid"></div>
 
         <div class="empty-state">Use the Publish tab to add new resources for your class.</div>
       </div>
@@ -172,6 +156,159 @@
   </div>
 
   <script>
+    const teacherFileInput = document.getElementById('teacherFileInput');
+    const teacherBrowseBtn = document.getElementById('teacherBrowseBtn');
+    const teacherUploadButton = document.getElementById('teacherUploadButton');
+    const teacherDropZone = document.getElementById('teacherDropZone');
+    const teacherUploadsGrid = document.getElementById('teacherUploadsGrid');
+    const teacherFileCount = document.getElementById('teacherFileCount');
+    const teacherTotalSize = document.getElementById('teacherTotalSize');
+    const teacherFileTypes = document.getElementById('teacherFileTypes');
+
+    const storageKey = 'teacher-resource-uploads';
+    const seedResources = [
+      {
+        id: 'seed-algebra',
+        name: 'Algebra Practice Set A',
+        meta: 'Uploaded 12 min ago',
+        type: 'doc',
+        tag: 'Document',
+        icon: '📄'
+      },
+      {
+        id: 'seed-reading',
+        name: 'Reading Comprehension Week 4',
+        meta: 'Uploaded 1 hour ago',
+        type: 'vid',
+        tag: 'Video',
+        icon: '🎬'
+      },
+      {
+        id: 'seed-science',
+        name: 'Science Lab Safety Slides',
+        meta: 'Uploaded yesterday',
+        type: 'img',
+        tag: 'Image',
+        icon: '🖼️'
+      }
+    ];
+
+    function loadUploads() {
+      try {
+        const raw = localStorage.getItem(storageKey);
+        return raw ? JSON.parse(raw) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveUploads() {
+      localStorage.setItem(storageKey, JSON.stringify(uploadedResources));
+    }
+
+    function getType(fileName) {
+      const extension = fileName.split('.').pop().toLowerCase();
+      if (['jpg', 'jpeg', 'png'].includes(extension)) return 'img';
+      if (extension === 'pdf') return 'pdf';
+      if (extension === 'mp4') return 'vid';
+      return 'doc';
+    }
+
+    function getIcon(type) {
+      if (type === 'img') return '🖼️';
+      if (type === 'pdf') return '📕';
+      if (type === 'vid') return '🎬';
+      return '📄';
+    }
+
+    function getTagLabel(type) {
+      if (type === 'img') return 'Image';
+      if (type === 'pdf') return 'PDF';
+      if (type === 'vid') return 'Video';
+      return 'Document';
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 KB';
+      if (bytes < 1024) return `${bytes} B`;
+      const kilobytes = bytes / 1024;
+      if (kilobytes < 1024) return `${kilobytes.toFixed(kilobytes < 10 ? 1 : 0)} KB`;
+      return `${(kilobytes / 1024).toFixed(1)} MB`;
+    }
+
+    function formatRelativeTime(timestamp) {
+      const minutesOld = Math.max(1, Math.floor((Date.now() - timestamp) / 60000));
+      if (minutesOld < 60) return `${minutesOld} min ago`;
+      const hoursOld = Math.floor(minutesOld / 60);
+      if (hoursOld < 24) return `${hoursOld} hour${hoursOld === 1 ? '' : 's'} ago`;
+      const daysOld = Math.floor(hoursOld / 24);
+      return `${daysOld} day${daysOld === 1 ? '' : 's'} ago`;
+    }
+
+    function getRenderedResources() {
+      return [
+        ...uploadedResources.map((item) => ({
+          ...item,
+          uploaded: true
+        })),
+        ...seedResources.map((item) => ({
+          ...item,
+          uploaded: false
+        }))
+      ];
+    }
+
+    function updateStats() {
+      const totalCount = uploadedResources.length;
+      const totalSize = uploadedResources.reduce((sum, item) => sum + item.size, 0);
+      const typeCount = new Set(uploadedResources.map((item) => item.type)).size;
+
+      teacherFileCount.textContent = totalCount;
+      teacherTotalSize.textContent = totalCount ? formatBytes(totalSize) : '0 KB';
+      teacherFileTypes.textContent = totalCount ? `${typeCount} type${typeCount === 1 ? '' : 's'}` : '—';
+    }
+
+    function renderResources() {
+      const resources = getRenderedResources();
+
+      teacherUploadsGrid.innerHTML = resources.map((resource) => `
+        <div class="file-card">
+          ${resource.uploaded ? `<button class="fc-del" type="button" data-delete-id="${resource.id}" aria-label="Delete ${resource.name}">×</button>` : ''}
+          <div class="fc-icon">${resource.icon}</div>
+          <div class="fc-name">${resource.name}</div>
+          <div class="fc-meta">${resource.uploaded ? `${formatBytes(resource.size)} · ${formatRelativeTime(resource.addedAt)}` : resource.meta}</div>
+          <span class="fc-tag tag-${resource.type}">${resource.tag}</span>
+        </div>
+      `).join('');
+
+      updateStats();
+    }
+
+    function addUploads(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      const newUploads = files.map((file) => ({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: file.name,
+        size: file.size,
+        type: getType(file.name),
+        tag: getTagLabel(getType(file.name)),
+        icon: getIcon(getType(file.name)),
+        addedAt: Date.now()
+      }));
+
+      uploadedResources = [...newUploads, ...uploadedResources];
+      saveUploads();
+      renderResources();
+    }
+
+    function deleteUpload(id) {
+      uploadedResources = uploadedResources.filter((item) => item.id !== id);
+      saveUploads();
+      renderResources();
+    }
+
     function switchTab(name) {
       document.querySelectorAll('.tab').forEach((tab) => {
         tab.classList.toggle('active', tab.dataset.tab === name);
@@ -182,9 +319,48 @@
       });
     }
 
+    let uploadedResources = loadUploads();
+
+    teacherDropZone.addEventListener('click', (event) => {
+      if (event.target === teacherDropZone || event.target === teacherDropZone.querySelector('.upload-icon') || event.target === teacherDropZone.querySelector('h2') || event.target === teacherDropZone.querySelector('p')) {
+        teacherFileInput.click();
+      }
+    });
+
+    teacherFileInput.addEventListener('change', () => {
+      addUploads(teacherFileInput.files);
+      teacherFileInput.value = '';
+      switchTab('uploads');
+    });
+
+    teacherDropZone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      teacherDropZone.classList.add('drag-over');
+    });
+
+    teacherDropZone.addEventListener('dragleave', () => {
+      teacherDropZone.classList.remove('drag-over');
+    });
+
+    teacherDropZone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      teacherDropZone.classList.remove('drag-over');
+      addUploads(event.dataTransfer.files);
+      switchTab('uploads');
+    });
+
+    teacherUploadsGrid.addEventListener('click', (event) => {
+      const deleteButton = event.target.closest('[data-delete-id]');
+      if (!deleteButton) return;
+
+      deleteUpload(deleteButton.dataset.deleteId);
+    });
+
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
+
+    renderResources();
   </script>
 
 </body>
