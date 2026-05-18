@@ -118,28 +118,32 @@
     <!-- FILES TAB -->
     <div class="panel" id="panel-files">
 
-      <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Search files..." />
+      <div class="resource-section">
+        <div class="section-heading">My uploads</div>
 
-        <div class="view-toggle">
-          <button class="vt-btn active" id="gridBtn">⊞</button>
-          <button class="vt-btn" id="listBtn">☰</button>
+        <div class="search-bar">
+          <input type="text" id="searchInput" placeholder="Search files..." />
+
+          <div class="view-toggle">
+            <button class="vt-btn active" id="gridBtn">⊞</button>
+            <button class="vt-btn" id="listBtn">☰</button>
+          </div>
         </div>
-      </div>
 
-      <div class="filters">
-        <button class="filter-btn active" data-filter="all">All</button>
-        <button class="filter-btn" data-filter="pdf">PDF</button>
-        <button class="filter-btn" data-filter="img">Image</button>
-        <button class="filter-btn" data-filter="vid">Video</button>
-        <button class="filter-btn" data-filter="doc">Document</button>
-      </div>
+        <div class="filters">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="pdf">PDF</button>
+          <button class="filter-btn" data-filter="img">Image</button>
+          <button class="filter-btn" data-filter="vid">Video</button>
+          <button class="filter-btn" data-filter="doc">Document</button>
+        </div>
 
-      <div class="file-grid" id="fileGrid"></div>
-      <div class="file-list-view" id="fileListView"></div>
+        <div class="file-grid" id="fileGrid"></div>
+        <div class="file-list-view" id="fileListView"></div>
 
-      <div class="empty-state" id="emptyState">
-        📂 No files uploaded yet. Go to Upload tab to add files.
+        <div class="empty-state" id="emptyState">
+          📂 No files uploaded yet. Go to Upload tab to add files.
+        </div>
       </div>
 
     </div>
@@ -148,11 +152,10 @@
     <div class="panel" id="panel-library">
       <p class="library-note">Class resources provided by your teacher.</p>
 
-      <div class="file-grid">
-        <div class="file-card">📘 Chapter 1 Notes</div>
-        <div class="file-card">🎬 Intro Lecture</div>
-        <div class="file-card">📝 Practice Quiz</div>
-        <div class="file-card">🖼️ Diagram Sheet</div>
+      <div class="file-grid" id="teacherResourceGrid"></div>
+
+      <div class="empty-state" id="teacherResourceEmptyState" style="display:none;">
+        Your teacher has not uploaded any shared resources yet.
       </div>
     </div>
 
@@ -162,8 +165,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const resourceApiBase = 'http://127.0.0.1:5000';
 const storageKey = 'student-resource-uploads';
 let files = loadFiles();
+let teacherFiles = [];
 let currentFilter = 'all';
 let isGridView = true;
 
@@ -175,6 +180,12 @@ const fileGrid = document.getElementById('fileGrid');
 const fileListView = document.getElementById('fileListView');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
+const statTotal = document.getElementById('statTotal');
+const statSize = document.getElementById('statSize');
+const statTypes = document.getElementById('statTypes');
+const fileCountBadge = document.getElementById('fileCountBadge');
+const teacherResourceGrid = document.getElementById('teacherResourceGrid');
+const teacherResourceEmptyState = document.getElementById('teacherResourceEmptyState');
 
 function loadFiles(){
   try {
@@ -187,6 +198,37 @@ function loadFiles(){
 
 function saveFiles(){
   localStorage.setItem(storageKey, JSON.stringify(files));
+}
+
+function getTypeLabel(type){
+  if (type === 'img') return 'Image';
+  if (type === 'pdf') return 'PDF';
+  if (type === 'vid') return 'Video';
+  return 'Document';
+}
+
+function normalizeRemoteMaterial(item){
+  const type = item.file_type === 'image' ? 'img' : item.file_type === 'pdf' ? 'pdf' : item.file_type === 'video' ? 'vid' : 'doc';
+  return {
+    id: item.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: item.original_name || item.name || 'Untitled file',
+    size: item.size || 0,
+    type,
+    date: item.uploaded_at || new Date().toISOString(),
+    source: item.source || 'teacher'
+  };
+}
+
+function renderFileCard(file, deletable) {
+  return `
+    <div class="file-card">
+      ${deletable ? `<button class="fc-del" type="button" data-delete-id="${file.id}" aria-label="Delete ${file.name}">×</button>` : ''}
+      <div class="fc-icon">${file.type === 'vid' ? '🎬' : file.type === 'img' ? '🖼️' : file.type === 'pdf' ? '📕' : '📄'}</div>
+      <div class="fc-name">${file.name}</div>
+      <div class="fc-meta">${formatBytes(file.size || 0)}${file.date ? ` · ${new Date(file.date).toLocaleString()}` : ''}</div>
+      <span class="fc-tag tag-${file.type}">${getTypeLabel(file.type)}</span>
+    </div>
+  `;
 }
 
 function formatBytes(bytes){
@@ -222,6 +264,69 @@ if (browseBtn) {
   browseBtn.onclick = ()=>fileInput.click();
 }
 
+async function bootstrapTeacherResources(){
+  if (!teacherResourceGrid || !teacherResourceEmptyState) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${resourceApiBase}/api/materials?source=teacher`, { mode: 'cors' });
+    if (!response.ok) {
+      throw new Error('Failed to load teacher resources');
+    }
+
+    const data = await response.json();
+    teacherFiles = (data.materials || []).map(normalizeRemoteMaterial);
+    teacherResourceGrid.innerHTML = teacherFiles.map((resource) => renderFileCard(resource, false)).join('');
+    teacherResourceEmptyState.style.display = teacherFiles.length ? 'none' : 'block';
+  } catch (error) {
+    console.warn('Could not load teacher resources.', error);
+    teacherResourceGrid.innerHTML = '';
+    teacherResourceEmptyState.style.display = 'block';
+  }
+}
+
+async function bootstrapStudentFiles(){
+  try {
+    const response = await fetch(`${resourceApiBase}/api/materials?source=student`, { mode: 'cors' });
+    if (!response.ok) {
+      throw new Error('Failed to load student files');
+    }
+
+    const data = await response.json();
+    const remoteFiles = (data.materials || []).map(normalizeRemoteMaterial);
+    files = remoteFiles.length ? remoteFiles : loadFiles();
+    saveFiles();
+    update();
+    return;
+  } catch (error) {
+    console.warn('Could not load student files from backend.', error);
+  }
+
+  files = loadFiles();
+  update();
+}
+
+async function syncFilesToServer(newFiles){
+  try {
+    const formData = new FormData();
+    newFiles.forEach((file) => formData.append('files', file));
+    formData.append('source', 'student');
+
+    const response = await fetch(`${resourceApiBase}/api/materials/upload`, {
+      method: 'POST',
+      body: formData,
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+  } catch (error) {
+    console.warn('Student upload could not be synced to the backend.', error);
+  }
+}
+
 function handleFiles(newFiles){
   if(!newFiles.length)return;
 
@@ -245,6 +350,29 @@ function handleFiles(newFiles){
 
   saveFiles();
   update();
+  void syncFilesToServer(newFiles);
+}
+
+async function deleteStudentFile(id){
+  files = files.filter((file) => file.id !== id);
+  saveFiles();
+  update();
+
+  try {
+    const response = await fetch(`${resourceApiBase}/api/materials/${id}`, {
+      method: 'DELETE',
+      mode: 'cors'
+    });
+
+    if (!response.ok) {
+      throw new Error('Delete failed');
+    }
+
+    await bootstrapStudentFiles();
+  } catch (error) {
+    console.warn('Student file deletion could not be synced to the backend.', error);
+    await bootstrapStudentFiles();
+  }
 }
 
 function getType(n){
@@ -261,20 +389,21 @@ function render(){
 
   emptyState.style.display=f.length?'none':'block';
 
-  fileGrid.innerHTML=f.map(x=>`
-    <div class="file-card">
-      📄 ${x.name}
-    </div>`).join('');
+  fileGrid.innerHTML=f.map(x=>renderFileCard(x, true)).join('');
 
   fileListView.innerHTML=f.map(x=>`
-    <div class="list-item">${x.name}</div>`).join('');
+    <div class="list-item">
+      <span>${x.name}</span>
+      <button class="fc-del" type="button" data-delete-id="${x.id}" aria-label="Delete ${x.name}">×</button>
+    </div>`).join('');
+
 }
 
 function update(){
-  document.getElementById('statTotal').textContent=files.length;
-  document.getElementById('fileCountBadge').textContent=files.length;
-  document.getElementById('statSize').textContent=`${formatBytes(files.reduce((sum,file)=>sum+file.size,0))}`;
-  document.getElementById('statTypes').textContent=files.length ? `${new Set(files.map(file=>file.type)).size} type${new Set(files.map(file=>file.type)).size === 1 ? '' : 's'}` : '—';
+  statTotal.textContent=files.length;
+  fileCountBadge.textContent=files.length;
+  statSize.textContent=`${formatBytes(files.reduce((sum,file)=>sum+file.size,0))}`;
+  statTypes.textContent=files.length ? `${new Set(files.map(file=>file.type)).size} type${new Set(files.map(file=>file.type)).size === 1 ? '' : 's'}` : '—';
   render();
 }
 
@@ -282,9 +411,22 @@ fileInput.onchange=e=>handleFiles([...e.target.files]);
 dropZone.ondrop=e=>{e.preventDefault();handleFiles([...e.dataTransfer.files]);};
 dropZone.ondragover=e=>e.preventDefault();
 
+fileGrid.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-delete-id]');
+  if (!deleteButton) return;
+  void deleteStudentFile(deleteButton.dataset.deleteId);
+});
+
+fileListView.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-delete-id]');
+  if (!deleteButton) return;
+  void deleteStudentFile(deleteButton.dataset.deleteId);
+});
+
 searchInput.oninput=render;
 
-update();
+bootstrapTeacherResources();
+bootstrapStudentFiles();
 </script>
 
 </body>

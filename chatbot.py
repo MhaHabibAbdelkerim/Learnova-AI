@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from database import init_db, create_alert
 from alerts import alerts_bp
 from message_flagger import analyze_message
+from materials_store import ensure_storage, delete_material, list_materials, retrieve_material_context, store_materials
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,6 +18,7 @@ CORS(app)
 
 # Initialize database
 init_db()
+ensure_storage()
 
 # Register alerts blueprint
 app.register_blueprint(alerts_bp)
@@ -76,6 +78,14 @@ Adapt your explanation style based on detected student behavior:
 If unsure, start simple and adjust based on:
 - how they respond
 - whether they ask for examples, steps, or explanations
+
+------------------------
+MATERIAL GROUNDED RESPONSE MODE
+------------------------
+If uploaded materials are provided, treat them as the main source of truth.
+Use the uploaded material excerpts to answer questions when possible.
+If the materials do not contain the answer, say that clearly instead of guessing.
+Mention file names or resource titles when helpful so the student can find the source.
 
 ------------------------
 ACADEMIC INTEGRITY MODE
@@ -180,7 +190,11 @@ def chat():
                 analysis_model=flag_result.get("analysis_model"),
             )
 
+        material_context = retrieve_material_context(user_message)
+
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if material_context:
+            messages.append({"role": "system", "content": material_context})
         messages.extend(history)
         messages.append({"role": "user", "content": user_message})
 
@@ -195,6 +209,41 @@ def chat():
 
         return jsonify({"reply": reply})
 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/materials", methods=["GET"])
+def api_materials():
+    source = request.args.get("source") or None
+    return jsonify({"materials": list_materials(source=source)})
+
+
+@app.route("/api/materials/upload", methods=["POST"])
+def api_materials_upload():
+    try:
+        source = request.form.get("source", "student")
+        uploaded_files = request.files.getlist("files")
+        if not uploaded_files:
+            single_file = request.files.get("file")
+            uploaded_files = [single_file] if single_file else []
+
+        if not uploaded_files:
+            return jsonify({"error": "No files were uploaded."}), 400
+
+        materials = store_materials(uploaded_files, source=source)
+        return jsonify({"materials": materials, "count": len(materials)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/materials/<material_id>", methods=["DELETE"])
+def api_materials_delete(material_id):
+    try:
+        deleted = delete_material(material_id)
+        if not deleted:
+            return jsonify({"error": "Material not found."}), 404
+        return jsonify({"deleted": True, "id": material_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

@@ -1,0 +1,19 @@
+16	
+Threshold	
+Programming	
+Recognize and troubleshoot common errors in code and issues uploading (error codes, debug prints). Debug broken code.	
+
+18	
+Excellent	
+Microcontrollers	
+On a microcontroller, write code to Implement state change detection for appropriate events (event driven programming)	
+
+17	
+Typical	
+Microcontrollers	
+Write code that utilizes a microcontroller's hardware interrupts to perform a task, describe why they are used.	
+
+14	
+Excellent	
+Microcontrollers	
+Use features, boards or devices not taught during class, e.g. a personal project with some of the advanced sensors in the kit.	

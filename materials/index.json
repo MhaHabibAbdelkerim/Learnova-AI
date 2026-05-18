@@ -1,0 +1,46 @@
+[
+  {
+    "id": "f50431ab65394f6e8765db2bad1efd8d",
+    "original_name": "SOBs Week 7-8.txt",
+    "stored_name": "20260518163824_f50431ab65394f6e8765db2bad1efd8d.txt",
+    "text_path": "f50431ab65394f6e8765db2bad1efd8d.txt",
+    "size": 800,
+    "mime_type": "text/plain",
+    "file_type": "document",
+    "source": "student",
+    "uploaded_at": "2026-05-18T16:38:24.753485+00:00"
+  },
+  {
+    "id": "ed505b6ad922419aa24467f3c4e825ee",
+    "original_name": "HTML (HyperText Markup Language) is.txt",
+    "stored_name": "20260518162703_ed505b6ad922419aa24467f3c4e825ee.txt",
+    "text_path": "ed505b6ad922419aa24467f3c4e825ee.txt",
+    "size": 6776,
+    "mime_type": "text/plain",
+    "file_type": "document",
+    "source": "student",
+    "uploaded_at": "2026-05-18T16:27:03.644745+00:00"
+  },
+  {
+    "id": "d7f9b9ddc7864c3ba995140b7e09d11c",
+    "original_name": "SOBs Week 9-10.txt",
+    "stored_name": "20260518162633_d7f9b9ddc7864c3ba995140b7e09d11c.txt",
+    "text_path": "d7f9b9ddc7864c3ba995140b7e09d11c.txt",
+    "size": 627,
+    "mime_type": "text/plain",
+    "file_type": "document",
+    "source": "teacher",
+    "uploaded_at": "2026-05-18T16:26:33.584489+00:00"
+  },
+  {
+    "id": "8b7d1fbd1e764dc1842dfe3cf2638638",
+    "original_name": "Object-Oriented Programming (OOP) i.txt",
+    "stored_name": "20260518161030_8b7d1fbd1e764dc1842dfe3cf2638638.txt",
+    "text_path": "8b7d1fbd1e764dc1842dfe3cf2638638.txt",
+    "size": 6262,
+    "mime_type": "text/plain",
+    "file_type": "document",
+    "source": "teacher",
+    "uploaded_at": "2026-05-18T16:10:30.291630+00:00"
+  }
+]

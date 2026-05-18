@@ -119,7 +119,7 @@
         <div class="card-title">Uploaded resources</div>
         <div class="file-grid" id="teacherUploadsGrid"></div>
 
-        <div class="empty-state">Use the Publish tab to add new resources for your class.</div>
+        <div class="empty-state" id="teacherEmptyState">No uploaded resources yet. Use the Publish tab to add files.</div>
       </div>
 
       <div class="panel" id="panel-library">
@@ -156,6 +156,9 @@
   </div>
 
   <script>
+    const resourceApiBase = 'http://127.0.0.1:5000';
+    const storageKey = 'teacher-resource-uploads';
+
     const teacherFileInput = document.getElementById('teacherFileInput');
     const teacherBrowseBtn = document.getElementById('teacherBrowseBtn');
     const teacherUploadButton = document.getElementById('teacherUploadButton');
@@ -164,34 +167,9 @@
     const teacherFileCount = document.getElementById('teacherFileCount');
     const teacherTotalSize = document.getElementById('teacherTotalSize');
     const teacherFileTypes = document.getElementById('teacherFileTypes');
+    const teacherEmptyState = document.getElementById('teacherEmptyState');
 
-    const storageKey = 'teacher-resource-uploads';
-    const seedResources = [
-      {
-        id: 'seed-algebra',
-        name: 'Algebra Practice Set A',
-        meta: 'Uploaded 12 min ago',
-        type: 'doc',
-        tag: 'Document',
-        icon: '📄'
-      },
-      {
-        id: 'seed-reading',
-        name: 'Reading Comprehension Week 4',
-        meta: 'Uploaded 1 hour ago',
-        type: 'vid',
-        tag: 'Video',
-        icon: '🎬'
-      },
-      {
-        id: 'seed-science',
-        name: 'Science Lab Safety Slides',
-        meta: 'Uploaded yesterday',
-        type: 'img',
-        tag: 'Image',
-        icon: '🖼️'
-      }
-    ];
+    let uploadedResources = loadUploads();
 
     function loadUploads() {
       try {
@@ -245,68 +223,108 @@
       return `${daysOld} day${daysOld === 1 ? '' : 's'} ago`;
     }
 
-    function getRenderedResources() {
-      return [
-        ...uploadedResources.map((item) => ({
-          ...item,
-          uploaded: true
-        })),
-        ...seedResources.map((item) => ({
-          ...item,
-          uploaded: false
-        }))
-      ];
+    function normalizeRemoteMaterial(item) {
+      const type = item.file_type === 'image' ? 'img' : item.file_type === 'pdf' ? 'pdf' : item.file_type === 'video' ? 'vid' : 'doc';
+      return {
+        id: item.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        name: item.original_name || item.name || 'Untitled file',
+        size: item.size || 0,
+        type,
+        tag: getTagLabel(type),
+        icon: getIcon(type),
+        addedAt: item.uploaded_at || new Date().toISOString(),
+        source: item.source || 'teacher'
+      };
+    }
+
+    async function bootstrapUploads() {
+      try {
+        const response = await fetch(`${resourceApiBase}/api/materials?source=teacher`, { mode: 'cors' });
+        if (response.ok) {
+          const data = await response.json();
+          const remoteUploads = (data.materials || []).map(normalizeRemoteMaterial);
+          uploadedResources = remoteUploads.length ? remoteUploads : loadUploads();
+          saveUploads();
+          renderResources();
+          return;
+        }
+      } catch (error) {
+        console.warn('Could not load teacher materials from server.', error);
+      }
+
+      uploadedResources = loadUploads();
+      renderResources();
+    }
+
+    async function syncUploadsToServer(files) {
+      try {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('files', file));
+        formData.append('source', 'teacher');
+
+        const response = await fetch(`${resourceApiBase}/api/materials/upload`, {
+          method: 'POST',
+          body: formData,
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        await bootstrapUploads();
+      } catch (error) {
+        console.warn('Teacher material upload could not be saved to the backend.', error);
+      }
+    }
+
+    async function deleteUpload(id) {
+      uploadedResources = uploadedResources.filter((item) => item.id !== id);
+      saveUploads();
+      renderResources();
+
+      try {
+        const response = await fetch(`${resourceApiBase}/api/materials/${id}`, {
+          method: 'DELETE',
+          mode: 'cors'
+        });
+
+        if (!response.ok) {
+          throw new Error('Delete failed');
+        }
+
+        await bootstrapUploads();
+      } catch (error) {
+        console.warn('Teacher material deletion could not be synced to the backend.', error);
+        await bootstrapUploads();
+      }
+    }
+
+    function renderResources() {
+      teacherUploadsGrid.innerHTML = uploadedResources.length
+        ? uploadedResources.map((resource) => `
+          <div class="file-card">
+            <button class="fc-del" type="button" data-delete-id="${resource.id}" aria-label="Delete ${resource.name}">×</button>
+            <div class="fc-icon">${resource.icon}</div>
+            <div class="fc-name">${resource.name}</div>
+            <div class="fc-meta">${formatBytes(resource.size)} · ${formatRelativeTime(resource.addedAt)}</div>
+            <span class="fc-tag tag-${resource.type}">${resource.tag}</span>
+          </div>
+        `).join('')
+        : '';
+
+      teacherEmptyState.style.display = uploadedResources.length ? 'none' : 'block';
+      updateStats();
     }
 
     function updateStats() {
       const totalCount = uploadedResources.length;
-      const totalSize = uploadedResources.reduce((sum, item) => sum + item.size, 0);
+      const totalSize = uploadedResources.reduce((sum, item) => sum + (item.size || 0), 0);
       const typeCount = new Set(uploadedResources.map((item) => item.type)).size;
 
       teacherFileCount.textContent = totalCount;
       teacherTotalSize.textContent = totalCount ? formatBytes(totalSize) : '0 KB';
       teacherFileTypes.textContent = totalCount ? `${typeCount} type${typeCount === 1 ? '' : 's'}` : '—';
-    }
-
-    function renderResources() {
-      const resources = getRenderedResources();
-
-      teacherUploadsGrid.innerHTML = resources.map((resource) => `
-        <div class="file-card">
-          ${resource.uploaded ? `<button class="fc-del" type="button" data-delete-id="${resource.id}" aria-label="Delete ${resource.name}">×</button>` : ''}
-          <div class="fc-icon">${resource.icon}</div>
-          <div class="fc-name">${resource.name}</div>
-          <div class="fc-meta">${resource.uploaded ? `${formatBytes(resource.size)} · ${formatRelativeTime(resource.addedAt)}` : resource.meta}</div>
-          <span class="fc-tag tag-${resource.type}">${resource.tag}</span>
-        </div>
-      `).join('');
-
-      updateStats();
-    }
-
-    function addUploads(fileList) {
-      const files = Array.from(fileList || []);
-      if (!files.length) return;
-
-      const newUploads = files.map((file) => ({
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        name: file.name,
-        size: file.size,
-        type: getType(file.name),
-        tag: getTagLabel(getType(file.name)),
-        icon: getIcon(getType(file.name)),
-        addedAt: Date.now()
-      }));
-
-      uploadedResources = [...newUploads, ...uploadedResources];
-      saveUploads();
-      renderResources();
-    }
-
-    function deleteUpload(id) {
-      uploadedResources = uploadedResources.filter((item) => item.id !== id);
-      saveUploads();
-      renderResources();
     }
 
     function switchTab(name) {
@@ -319,10 +337,32 @@
       });
     }
 
-    let uploadedResources = loadUploads();
+    function addUploads(fileList) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
+
+      const newUploads = files.map((file) => {
+        const type = getType(file.name);
+        return {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          name: file.name,
+          size: file.size,
+          type,
+          tag: getTagLabel(type),
+          icon: getIcon(type),
+          addedAt: new Date().toISOString(),
+          source: 'teacher'
+        };
+      });
+
+      uploadedResources = [...newUploads, ...uploadedResources];
+      saveUploads();
+      renderResources();
+      void syncUploadsToServer(files);
+    }
 
     teacherDropZone.addEventListener('click', (event) => {
-      if (event.target === teacherDropZone || event.target === teacherDropZone.querySelector('.upload-icon') || event.target === teacherDropZone.querySelector('h2') || event.target === teacherDropZone.querySelector('p')) {
+      if (event.target === teacherDropZone || event.target.tagName === 'H2' || event.target.tagName === 'P' || event.target.classList.contains('upload-icon')) {
         teacherFileInput.click();
       }
     });
@@ -353,14 +393,14 @@
       const deleteButton = event.target.closest('[data-delete-id]');
       if (!deleteButton) return;
 
-      deleteUpload(deleteButton.dataset.deleteId);
+      void deleteUpload(deleteButton.dataset.deleteId);
     });
 
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
 
-    renderResources();
+    bootstrapUploads();
   </script>
 
 </body>

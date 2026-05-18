@@ -1,0 +1,23 @@
+12	
+Threshold	
+Microcontrollers	
+Describe the behaviour of a device(microcontroller) and how it processes data. Successfully upload a program code to the device.	
+02/03/2026 to 11/03/2026
+
+19
+Threshold
+Microcontrollers
+Describe basic circuits used with microcontrollers to sense or control (circuits for logical pullup/down, voltage dividers, use of transistors/relays)
+02/03/2026 to 11/03/2026
+
+15	
+Threshold	
+Microcontrollers	
+Write microcontroller code that demonstrates your ability to use digital and analogue pins (read/write analogue/digital, setups)	
+09/03/2026 to 18/03/2026
+
+13	
+Threshold	
+IoT & GUI	
+Write code to send and receive data through devices using appropriate methods for packing and unpacking. (ascii, uart, i2c, spi, Bluetooth)	
+23/03/2026 to 01/04/2026

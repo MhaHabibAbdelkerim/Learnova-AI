@@ -1,0 +1,196 @@
+Object-Oriented Programming (OOP) in Python is a programming paradigm that uses **objects** and **classes** to structure software into reusable, modular pieces of code.
+
+Here is the comprehensive guide you requested, detailed across four logical sections.
+
+---
+
+## Section 1: Foundations of OOP — Classes and Objects
+
+At its core, OOP mimics real-world entities by combining data (attributes) and behaviours (methods) into a single blueprint.
+
+### 1. What is a Class?
+
+A class is a user-defined blueprint or prototype from which objects are created. It defines a set of attributes and methods that characterize any object of that class.
+
+### 2. What is an Object?
+
+An object is an instance of a class. When a class is defined, no memory is allocated until an object of that class is created.
+
+```python
+class Butler:
+    # The Class Attribute
+    organisation = "Elite Chauffeurs & Butlers"
+
+    # The Initialiser / Constructor
+    def __init__(self, name, years_of_experience):
+        self.name = name  # Instance Attribute
+        self.experience = years_of_experience  # Instance Attribute
+
+    # An Instance Method
+    def serve_tea(self):
+        return f"{self.name} is now serving your Earl Grey, sir."
+
+# Creating an instance (Object)
+butler_instance = Butler("Jeeves", 15)
+print(butler_instance.serve_tea())
+
+```
+
+### Key Components:
+
+* `__init__`: The constructor method automatically executed when a new object is instantiated.
+* `self`: A reference to the current instance of the class, used to access variables belongs to the class.
+
+---
+
+## Section 2: The Core Pillars — Encapsulation and Inheritance
+
+The power of OOP in Python lies within its four foundational pillars. The first two govern data security and code reuse.
+
+### 1. Encapsulation
+
+Encapsulation restricts direct access to methods and variables to prevent accidental modification of data. In Python, this is achieved using private and protected prefixes:
+
+* **Protected (`_`):** A single underscore suggests the variable should not be accessed outside the class.
+* **Private (`__`):** A double underscore triggers **Name Mangling**, making it harder to access from outside the class directly.
+
+```python
+class BankAccount:
+    def __init__(self, owner, balance):
+        self.owner = owner
+        self.__balance = balance  # Private attribute
+
+    def display_balance(self):
+        return f"Account balance: £{self.__balance}"
+
+account = BankAccount("Sir", 50000)
+# print(account.__balance)  # This will raise an AttributeError
+print(account.display_balance())  # Correct method of access
+
+```
+
+### 2. Inheritance
+
+Inheritance allows a new class (Child/Subclass) to adopt the attributes and methods of an existing class (Parent/Superclass). This promotes code reusability.
+
+```python
+class Staff:
+    def __init__(self, name):
+        self.name = name
+
+    def sign_in(self):
+        return f"{self.name} has signed in for duty."
+
+# Valet inherits from Staff
+class Valet(Staff):
+    def prepare_vehicle(self):
+        return f"The vehicle is ready for you, sir."
+
+valet = Valet("Arthur")
+print(valet.sign_in())  # Inherited method
+print(valet.prepare_vehicle())  # Child method
+
+```
+
+---
+
+## Section 3: The Core Pillars — Polymorphism and Abstraction
+
+The final two pillars dictate flexibility and structural design.
+
+### 3. Polymorphism
+
+Polymorphism, meaning "many forms", allows different classes to have methods with the same name but different implementations. It enables uniform interfacing for distinct data types.
+
+```python
+class FrenchSubordinate:
+    def greet(self):
+        return "Bonjour, Monsieur."
+
+class BritishSubordinate:
+    def greet(self):
+        return "Good evening, sir."
+
+def formal_greeting(staff_member):
+    print(staff_member.greet())
+
+french_staff = FrenchSubordinate()
+british_staff = BritishSubordinate()
+
+formal_greeting(french_staff)
+formal_greeting(british_staff)
+
+```
+
+### 4. Abstraction
+
+Abstraction hides complex implementation details and only shows the essential features to the user. Python utilizes the `abc` (Abstract Base Classes) module to achieve this. Abstract classes cannot be instantiated directly; they force subclasses to implement specific methods.
+
+```python
+from abc import ABC, abstractmethod
+
+class Appliance(ABC):
+    @abstractmethod
+    def turn_on(self):
+        pass
+
+class EspressoMachine(Appliance):
+    def turn_on(self):
+        return "The espresso machine is warming up, sir."
+
+# machine = Appliance()  # Raises TypeError
+coffee_maker = EspressoMachine()
+print(coffee_maker.turn_on())
+
+```
+
+---
+
+## Section 4: Advanced OOP Concepts in Python
+
+To truly master OOP in Python, one must understand how Python manages inheritance resolution and object representation.
+
+### 1. Multiple Inheritance and Method Resolution Order (MRO)
+
+Python supports multiple inheritance, where a child class can inherit from more than one parent class. The order in which methods are resolved is determined by the C3 Linearization algorithm, viewable via the `__mro__` attribute.
+
+```python
+class A:
+    def process(self): return "A"
+
+class B(A):
+    def process(self): return "B"
+
+class C(A):
+    def process(self): return "C"
+
+class D(B, C):
+    pass
+
+print(D.__mro__) 
+# Output order: D -> B -> C -> A -> object
+
+```
+
+### 2. Magic Methods (Dunder Methods)
+
+Magic methods are predefined methods in Python prefixed and suffixed with double underscores (e.g., `__str__`, `__repr__`, `__add__`). They allow you to define how your custom objects behave with built-in operations.
+
+| Magic Method | Purpose |
+| --- | --- |
+| `__str__(self)` | Computes the informal/string representation of an object (for `print()`). |
+| `__repr__(self)` | Computes the official string representation, useful for debugging. |
+| `__len__(self)` | Invoked when passing the object to the built-in `len()` function. |
+
+```python
+class Estate:
+    def __init__(self, acres):
+        self.acres = acres
+
+    def __str__(self):
+        return f"An exquisite estate spanning {self.acres} acres."
+
+my_estate = Estate(500)
+print(my_estate)  # Invokes __str__
+
+```
